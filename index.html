@@ -1,0 +1,159 @@
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Fish Test</title>
+  </head>
+  <body>
+    <div id="app">
+      <div>
+        <!-- adding fish -->
+        <label for="name">Fish name:</label>
+        <input id="name" v-model="fishName" />
+        <select v-model="fishType">
+          <option v-for="type in allowedFishTypes" :key="type" :value="type">
+            {{ type }}
+          </option>
+        </select>
+        <button @click="addNewFishToTank">Add Fish</button>
+      </div>
+
+      <div>
+        <!-- adding fish type -->
+       <label for="type">New fish type:</label>
+       <input id="type" v-model="newFishType" />
+       <label for="food">Max food allowed:</label>
+       <input id="food" v-model="newFishMaxFood" type="number" />
+       <button @click="addNewFishTypeToTank">Add Fish Type</button>
+      </div>
+
+      <ul>
+        <!-- Removing fish type -->
+        <li v-for="type in allowedFishTypes" :key="type">
+          {{ type }} 
+          <button @click="() => removeFishTypeFromTank(type)">Remove</button>
+        </li>
+      </ul>
+
+      <ul>
+        <!-- displaying fish and food needed to feed fish -->
+        <li v-for="fish in fishList" :key="fish.name">
+          {{ fish.name }} of type {{ fish.type }} needs {{ fish.foodLeftToFeedFish() }}g
+        </li>
+      </ul>
+
+      <!-- show number of days until cleaning is required -->
+      <p>{{ cleaningMessage }}</p>
+    </div>
+  </body>
+</html>
+
+<script type="module">
+  const { createApp, ref, computed } = Vue;
+  import { FishTank } from "./utils/Classes.js"
+
+  createApp({
+    setup() {
+      // creates an instance of a fish tank.
+      const newFishTank = ref(new FishTank());
+
+      // tracks how many cleaning days tank has left
+      const daysLeftToCleanTank = ref(30);
+
+      // handles state for creating new fish (name & type)
+      const fishName = ref('');
+      const fishType = ref(FishTank.getFishTypes()[0]);
+
+      // handles state that displays tank cleaning status to user
+      const cleaningMessage = ref('You have 30 days to clean the tank.');
+
+      // displays error messages (if any) to user
+      const errorMessage = ref('');
+
+      // handles states that creates new type of fish and assigns max food allowed for feeding
+      const newFishType = ref('');
+      const newFishMaxFood = ref('');
+
+      // handles state for allowed fish types
+      const allowedFishTypes = ref(FishTank.getFishTypes());
+
+      // computed properties to track dynamic state for fish in the tank.
+      const fishList = computed(() => newFishTank.value.getFish());
+
+      // adds new fish to tank
+      function addNewFishToTank() {
+        errorMessage.value = '';
+        try {
+          if (fishName.value != '') {
+            newFishTank.value.addFish(fishName.value, fishType.value);
+            fishName.value = ''; // resets name state after every new addition
+            checkAndCleanTank(); // calls function that updates ui for user on tank cleaning status
+          } else {
+            errorMessage.value = 'Fish name cannot be empty, please name fish' // handles edge case for emopty fish name field
+          }
+        } catch (error) {
+          errorMessage.value = error;
+        }
+      };
+
+      // adds new fish type to list of allowed fish types in tank
+      function addNewFishTypeToTank() {
+        errorMessage.value = ''; // resets error message state every time new fish type is added
+        try {
+          const type = newFishType.value.trim();
+          const maxFood = parseFloat(newFishMaxFood.value); // parseFLoat converts newFishMaxFood type of string to number
+          if (!type || isNaN(maxFood) || maxFood <= 0) {
+            errorMessage.value = 'Invalid type or max food.';
+          }
+          FishTank.addFishType(type, maxFood);
+          // calls the getFishTypes method to update ui with newly added fish type(s)
+          allowedFishTypes.value = FishTank.getFishTypes();
+          // resets states to default (empty string)
+          newFishType.value = '';
+          newFishMaxFood.value = '';
+        } catch (error) {
+          errorMessage.value = error;
+        }
+      };
+
+      function removeFishTypeFromTank(type) {
+        try {
+          FishTank.removeFishType(type);
+          // calls the getFishTypes method to update ui with newly removed fish type(s)
+          allowedFishTypes.value = FishTank.getFishTypes();
+        } catch (error) {
+          console.error(error.message);
+        };
+      };
+
+      // handles cleaning tank
+      function checkAndCleanTank() {
+        fishList.value.length = fishList.value.length > 0 ? fishList.value.length : 0; 
+        let message;
+        if (fishList.value.length > 0) {
+          daysLeftToCleanTank.value = Math.max(daysLeftToCleanTank.value -= 1, 0) // this ensures there are no negative values for the days left to clean.
+        }
+        message = `You have ${daysLeftToCleanTank.value} days left to clean the fish tank.`
+        cleaningMessage.value = message;
+      };
+
+      return { 
+        newFishTank, 
+        fishName, 
+        fishType,  
+        cleaningMessage, 
+        errorMessage, 
+        newFishType, 
+        newFishMaxFood,
+        fishList,
+        allowedFishTypes,
+        addNewFishToTank,
+        addNewFishTypeToTank,
+        removeFishTypeFromTank,
+        checkAndCleanTank
+      };
+    }
+  }).mount('#app')
+</script>
