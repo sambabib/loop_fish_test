@@ -6,4 +6,6 @@
 
 3. I added a "removeFishTypeFromTank" fn as a bonus to account for the counter-logic of being able to add a fish type to the tank as it is a management system.
 
-Thenk you.
+4. I also made a last-minute decision not to include showing errors in the markup (using errorMessage.value), however, they are stored in the "errorMessage" state.
+
+Thank you.
